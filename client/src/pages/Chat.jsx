@@ -169,7 +169,7 @@ const Chat = ({ chatId, user, selectedChat }) => {
     [chatId],
   );
 
-  const eventArr = {
+  const eventArr = {submitHandler
     [ALERT]: newAlertListener,
     [NEW_MESSAGE]: newMessagesHandler,
     [START_TYPING]: startTypingListener,
