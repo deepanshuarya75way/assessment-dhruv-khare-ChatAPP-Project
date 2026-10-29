@@ -89,6 +89,8 @@ const Chat = ({ chatId, user, selectedChat }) => {
   const otherUserKey=useGetPublicKeyQuery(otherUserId,{skip:!otherUserId,});
   const otherPublicKey=otherUserKey.data?.publicKey;
 
+  // console.log("E2ee debugging",{isDirectChat,hasOtherKey:!!otherPublicKey,status:otherUserKey.status,error:otherUserKey.error});
+
   const attatchFileMEnuHanlder = (e) => {
     dispatch(setIsFileMenu(true));
     setFileMenuAnchor(e.currentTarget);
@@ -138,7 +140,7 @@ const Chat = ({ chatId, user, selectedChat }) => {
 
       try{
         const myKeys=await  getMyKeys(user._id);
-        const key=await getSharedKey(meyKeys.privateKey,otherPublicKey);
+        const key=await getSharedKey(myKeys.privateKey,otherPublicKey);
         if(!isCancelled){
           setSharedKey(key);
         }
