@@ -263,7 +263,7 @@ const Chat = ({ chatId, user, selectedChat }) => {
   const getMessageText=(m)=>{
     if(!isEncryptedMessage(m.content)) return m.content;
     if(!sharedKey) return "Encrypted Message";
-    if(decryptedText[m._id]===undefined) return "Decrypting...";
+    if(decryptedText[m._id]===undefined) return "";
     return decryptedText[m._id] ?? "Cannot decrypt (key not available)";
   }
 
