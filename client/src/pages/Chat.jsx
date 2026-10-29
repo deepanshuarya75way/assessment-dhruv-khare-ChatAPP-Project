@@ -125,6 +125,8 @@ const Chat = ({ chatId, user, selectedChat }) => {
       }
       messageToSend=await encrypMesssage(sharedKey,message);
     }
+
+    // console.log("sending message");
     socket.emit(NEW_MESSAGE, { chatId, message:messageToSend, members });
     setMessage("");
   };
@@ -177,14 +179,29 @@ const Chat = ({ chatId, user, selectedChat }) => {
     if (chatDetails.isError) return navigate("/");
   }, [chatDetails.isError, navigate]);
 
-  const newMessagesHandler = useCallback(
-    (data) => {
-      // console.log(data);
-      if (data.chatId !== chatId) return;
-      setMessages((prev) => [...prev, data.message]);
+  const newMessagesHandler=useCallback(
+    async (data)=>{
+      if(data.chatId!==chatId) return ;
+
+      let text=data.message.content;
+
+      if(isEncryptedMessage(text)){
+        text=sharedKey ? ((await decryptMessage(sharedKey,text)) ?? "Cannot Decrypt!"):"Encrypted Message";
+      }
+
+      setMessages((prev)=>[...prev, {...data.message,content:text}]);
     },
-    [chatId],
-  );
+    [chatId,sharedKey],
+  )
+  // const newMessagesHandler = useCallback(
+  //   (data) => {
+  //     // console.log(data);
+  //     if (data.chatId !== chatId) return;
+  //     let text=data.message
+  //     setMessages((prev) => [...prev, data.message]);
+  //   },
+  //   [chatId,sharedKey],
+  // );
   const startTypingListener = useCallback(
     (data) => {
       if (data.chatId !== chatId) return;
