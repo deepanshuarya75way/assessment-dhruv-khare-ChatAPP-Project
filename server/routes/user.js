@@ -9,6 +9,8 @@ import {
   newUser,
   searchUser,
   sendFriendrequest,
+  savePublicKey,
+  getPublicKey
 } from "../controllers/user.js";
 import { singleAvatar } from "../middlewares/multer.js";
 import { isAuthenticatd } from "../middlewares/auth.js";
@@ -27,7 +29,10 @@ app.get("/search", searchUser);
 app.put("/send-request",sendFriendReqValidator(),validate, sendFriendrequest);
 app.put("/accept-request",acceptFriendReqValidator(),validate, acceptFriendReq);
 
-app.get("/allNotifications",getAllNotifications)
+app.get("/allNotifications",getAllNotifications);
 
-app.get("/friends",getMyFriends)
+app.get("/friends",getMyFriends);
+app.put("/public-key",savePublicKey);
+app.get("/public-key/:id",getPublicKey);
+
 export default app;

@@ -233,7 +233,37 @@ const getMyFriends=TryCatch(async(req,res)=>{
 
 })
 
+
+//For saving public key 
+const savePublicKey = TryCatch(async (req, res,next)=>{
+  const {publicKey}=req.body;
+  let jwk;
+  try{
+    jwk=JSON.parse(publicKey);
+  }
+  catch{
+    return next(new ErrorHandler("Invalid Public Key",400));
+  }
+  console.log(jwk);
+  if(jwk?.kty !=="EC" || jwk.crv!=="P-256" || jwk?.d){
+    return next(new ErrorHandler("Invalid Public Key",400));
+  }
+
+  await User.findByIdAndUpdate(req.user,{publicKey});
+  return res.status(200).json({success:true,message:"Public Key saved"});
+})
+
+//For getting a public key
+const getPublicKey =TryCatch(async (req,res,next)=>{
+  const user=await User.findById(req.params.id).select("publicKey");
+  if(!user) return next(new ErrorHandler("User not found",404));
+
+  return res.status(200).json({success:true, publicKey:user.publicKey||""});
+})
+
 export {
+  savePublicKey,
+  getPublicKey,
   getMyFriends,
   getAllNotifications,
   acceptFriendReq,

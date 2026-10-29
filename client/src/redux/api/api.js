@@ -89,6 +89,21 @@ const api = createApi({
       },
       providesTags: ["User"],
     }),
+    getPublicKey:builder.query({
+      query:(userId)=>({
+        url:`user/public-key/${userId}`,
+        credentials:"include",
+      }),
+      keepUnusedDataFor:0
+    }),
+    savePublicKey:builder.mutation({
+      query:(data)=>({
+        url:`user/public-key`,
+        method:"PUT",
+        credentials:"include",
+        body:data,
+      }),
+    }),
     getMyMessages: builder.query({
       query: ({chatId,page}) =>({
           url:`chat/message/${chatId}?page=${page}`,
@@ -164,6 +179,8 @@ const api = createApi({
 
 export default api;
 export const {
+  useGetPublicKeyQuery,
+  useSavePublicKeyMutation,
   useMyChatsQuery,
   useLazySearchUserQuery,
   useSendFriendReqMutation,

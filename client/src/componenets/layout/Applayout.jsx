@@ -6,7 +6,8 @@ import ChatList from "../specific/ChatList";
 // import { sampleChats } from "../../contants/sampleData";
 import { useNavigate, useParams } from "react-router-dom";
 import Profile from "../specific/Profile";
-import { useMyChatsQuery } from "../../redux/api/api";
+import { useMyChatsQuery ,useSavePublicKeyMutation} from "../../redux/api/api";
+import { getMyKeys } from "../../lib/crypto";
 import { useDispatch, useSelector } from "react-redux";
 import { setIsDeleteMenu, setIsMobile, setSelectedDeleteChats } from "../../redux/reducer/msc";
 import { useErrors, useSocketEvents } from "../../hooks/hook";
@@ -41,6 +42,25 @@ const AppLayout = () => (WrappedComponent) => {
 
     const socket = useSocket();
     // console.log(socket.id);
+    
+    const [savePublicKey]=useSavePublicKeyMutation();
+
+    useEffect(()=>{
+      if(!user._id) return;
+
+      const setupKeys=async ()=>{
+        try{
+          const keys=await getMyKeys(user._id);
+          if(user.publicKey!== keys.publicKey){
+            await savePublicKey({publicKey:keys.publicKey}).unwrap();
+          }
+        } catch(error){
+          console.log("error in key setup:", error);
+        }
+      };
+      setupKeys();
+    },[user?._id,user?.publicKey,savePublicKey]);
+
 
     const { data, isLoading, isError, error, refetch } = useMyChatsQuery("");
     useErrors([{ isError, error }]);

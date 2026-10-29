@@ -34,6 +34,11 @@ import { TypingLoader } from "../componenets/layout/Loaders.jsx";
 import { useNavigate } from "react-router-dom";
 import AvatarCard from "../componenets/shared/AvatarCard.jsx";
 
+import toast from "react-hot-toast";
+import { useGetPublicKeyQuery } from "../redux/api/api.js";
+
+import { decryptMessage,encrypMesssage,getMyKeys,getSharedKey,isEncryptedMessage } from "../lib/crypto.js";
+
 const Chat = ({ chatId, user, selectedChat }) => {
   const containerRef = useRef(null);
   const bottomRef = useRef(null);
@@ -47,6 +52,9 @@ const Chat = ({ chatId, user, selectedChat }) => {
   const [messages, setMessages] = useState([]);
   const [page, setPage] = useState(1);
   const [fileMenuAnchor, setFileMenuAnchor] = useState(null);
+
+  const [sharedKey,setSharedKey]=useState(null);
+  const [decryptedText,setDecryptedText]=useState({});
 
   const [iAmTyping, setIAmTyping] = useState(false);
   const [userTyping, setUserTyping] = useState(false);
@@ -75,6 +83,12 @@ const Chat = ({ chatId, user, selectedChat }) => {
   // console.log("oldMessageChunk", oldMessagesChunk.data);
   const members = chatDetails?.data?.chat?.members;
 
+
+  const isDirectChat=!!chatDetails?.data?.chat && !chatDetails.data.chat.groupChat;
+  const otherUserId=isDirectChat ? members.find((id)=>id.toString()!== user._id.toString()):null;
+  const otherUserKey=useGetPublicKeyQuery(otherUserId,{skip:!otherUserId,});
+  const otherPublicKey=otherUserKey.data?.publicKey;
+
   const attatchFileMEnuHanlder = (e) => {
     dispatch(setIsFileMenu(true));
     setFileMenuAnchor(e.currentTarget);
@@ -96,14 +110,48 @@ const Chat = ({ chatId, user, selectedChat }) => {
     }, [2000]);
   };
 
-  const submitHandler = (e) => {
+  const submitHandler = async (e) => {
     e.preventDefault();
     // console.log(message);
     if (!message.trim()) return;
 
-    socket.emit(NEW_MESSAGE, { chatId, message, members });
+    let messageToSend=message;
+    if(isDirectChat){
+      if(!sharedKey){
+        toast.error("Seacure key is not ready");
+        return ;
+      }
+      messageToSend=await encrypMesssage(sharedKey,message);
+    }
+    socket.emit(NEW_MESSAGE, { chatId, message:messageToSend, members });
     setMessage("");
   };
+
+  useEffect(()=>{
+    let isCancelled=false;
+    setSharedKey(null);
+    setDecryptedText({});
+
+    if(!isDirectChat || !otherPublicKey || !user._id) return ;
+
+    const makeSharedKey = async ()=>{
+
+      try{
+        const myKeys=await  getMyKeys(user._id);
+        const key=await getSharedKey(meyKeys.privateKey,otherPublicKey);
+        if(!isCancelled){
+          setSharedKey(key);
+        }
+      } catch(error){
+        console.log("error in creating shared key:", error);
+      }
+    };
+    makeSharedKey();
+
+    return ()=>{
+      isCancelled=true;
+    };
+  },[isDirectChat,otherPublicKey,user?._id]);
 
   useEffect(() => {
     dispatch(removeNewMessageAlert(chatId));
@@ -186,6 +234,37 @@ const Chat = ({ chatId, user, selectedChat }) => {
     : selectedChat?.name || chatDetails?.data?.chat?.name || "Conversation";
   // console.log(allMessages);
 
+  useEffect(()=>{
+    if(!sharedKey) return ;
+
+    const notDecrypted=allMessages.filter(
+      (m)=>isEncryptedMessage(m.content) && decryptedText[m._id]===undefined,
+    );
+    if(notDecrypted.length===0) return ;
+
+    let isCancelled=false;
+    const decryptAll= async ()=>{
+      const result ={};
+      for(const m of notDecrypted)
+      {
+        result[m._id]=await decryptMessage(sharedKey,m.content);
+      }
+      if(!isCancelled) setDecryptedText((prev)=>({...prev,...result}));
+    };
+    decryptAll();
+
+    return ()=>{
+      isCancelled=true;
+    };
+  },[sharedKey,oldMessages,message,decryptedText]);
+  
+  const getMessageText=(m)=>{
+    if(!isEncryptedMessage(m.content)) return m.content;
+    if(!sharedKey) return "Encrypted Message";
+    if(decryptedText[m._id]===undefined) return "Decrypting...";
+    return decryptedText[m._id] ?? "Cannot decrypt (key not available)";
+  }
+
   return chatDetails.isLoading ? (
     <Skeleton />
   ) : (
@@ -253,7 +332,7 @@ const Chat = ({ chatId, user, selectedChat }) => {
 
         {allMessages.length > 0 ? (
           allMessages.map((i) => (
-            <MessageComponent key={i._id} message={i} user={user} />
+            <MessageComponent key={i._id} message={{...i, content:getMessageText(i) }} user={user} />
           ))
         ) : (
           <Stack
