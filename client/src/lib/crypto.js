@@ -1,8 +1,6 @@
-import { use } from "react";
-
-const STORAGE_PREFIX="chat-keys:";
-const PREFIX="enc:v1:";
-const ECDH={name:"ECDH", nameCurve:"P-256"};
+const KEY_STORAGE="chat-keys-";
+const ENC_PREFIX="enc:v1:";
+const ecdhParams={name:"ECDH", namedCurve:"P-256"};
 
 const bufferToBase64=(buffer)=> btoa(String.fromCharCode(...new Uint8Array(buffer)));
 
@@ -20,7 +18,7 @@ const createKeys= async (userId)=>{
     }
   }
 
-  const pair=await crypto.subtle.generateKey(ecdhParams,true,["derivedKey"]);
+  const pair=await crypto.subtle.generateKey(ecdhParams,true,["deriveKey"]);
   const privateKey=await crypto.subtle.exportKey("jwk",pair.privateKey);
   const exportedPublic=await crypto.subtle.exportKey("jwk",pair.publicKey);
   const keys={privateKey,publicKey:JSON.stringify(exportedPublic)};

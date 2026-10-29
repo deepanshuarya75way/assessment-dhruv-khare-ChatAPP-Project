@@ -46,6 +46,7 @@ const AppLayout = () => (WrappedComponent) => {
     const [savePublicKey]=useSavePublicKeyMutation();
 
     useEffect(()=>{
+      console.log("E2EE effect running, user id:", user?._id);
       if(!user._id) return;
 
       const setupKeys=async ()=>{
